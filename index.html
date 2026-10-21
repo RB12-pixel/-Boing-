@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>🔴 Boing!</title>
   
-  <!-- Collegamento al Manifest PWA -->
+  <!-- Configurazione PWA & iOS Nativo -->
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#89b4fa">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -119,6 +119,7 @@
       margin-top: 10px;
     }
     
+    /* Overlay Rilevamento OS */
     #os-guide-overlay {
       display: flex;
       position: absolute;
@@ -217,15 +218,7 @@
       cursor: pointer;
     }
   </style>
-  <script> src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js">
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js')
-        .then(reg => console.log('Service Worker Registrato:', reg.scope))
-        .catch(err => console.error('Errore SW:', err));
-    });
-  }
-</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 </head>
 <body>
 
@@ -816,12 +809,12 @@ if ('serviceWorker' in navigator) {
       });
     }
 
-    // --- CONTROLLI GIROSCOPIO / TASTIERA NATURALE ---
+    // --- GIROSCOPIO (MOBILE) & GRAVITÀ NATURALE (DESKTOP) ---
     function handleOrientation(event) {
       const x = event.gamma || 0;
       const y = event.beta || 0;
       engine.gravity.x = Math.max(-1.5, Math.min(1.5, x / 25));
-      engine.gravity.y = Math.max(0.2, Math.min(1.8, (y / 25) + 0.8)); // Forza costante verso il basso
+      engine.gravity.y = Math.max(0.2, Math.min(1.8, (y / 25) + 0.8));
     }
 
     const keysPressed = {};
@@ -841,7 +834,7 @@ if ('serviceWorker' in navigator) {
 
     function updateKeyboardGravity() {
       let gx = 0;
-      let gy = 1.0; // Gravità base naturale verso il basso
+      let gy = 1.0;
 
       if (keysPressed['arrowleft'] || keysPressed['a'] || keysPressed['keya']) gx -= KEYBOARD_FORCE;
       if (keysPressed['arrowright'] || keysPressed['d'] || keysPressed['keyd']) gx += KEYBOARD_FORCE;
