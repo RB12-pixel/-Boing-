@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>🔴 Boing!</title>
+  
+  <!-- Collegamento al Manifest PWA -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#89b4fa">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #1e1e2e;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      color: white;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    #ui {
+      position: absolute;
+      top: 12px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      z-index: 10;
+    }
+    #level-text {
+      font-size: 20px;
+      font-weight: bold;
+      color: #89b4fa;
+    }
+    #powerup-status {
+      display: none;
+      background: #89dceb;
+      color: #11111b;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: bold;
+      animation: pulse-status 1s infinite alternate;
+    }
+    @keyframes pulse-status {
+      0% { transform: scale(0.95); }
+      100% { transform: scale(1.05); }
+    }
+    .btn-ui {
+      background: #313244;
+      border: 1px solid #89b4fa;
+      color: #cdd6f4;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    canvas {
+      border: 3px solid #89b4fa;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .modal {
+      display: none;
+      position: absolute;
+      background: rgba(30, 30, 46, 0.95);
+      border: 2px solid #a6e3a1;
+      padding: 24px;
+      border-radius: 16px;
+      text-align: center;
+      z-index: 20;
+      max-width: 85%;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    h2 { margin: 0 0 10px 0; color: #a6e3a1; }
+    
+    #unlocked-skin-container {
+      display: none;
+      margin: 15px auto;
+    }
+    #unlocked-skin-preview {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      margin: 0 auto;
+      border: 3px solid #ffffff;
+      background-size: cover;
+      background-position: center;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+      animation: pulse 1.5s infinite alternate ease-in-out;
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 15px rgba(255, 255, 255, 0.3); }
+      100% { transform: scale(1.1); box-shadow: 0 0 30px rgba(255, 255, 255, 0.8); }
+    }
+    #unlocked-skin-name {
+      margin-top: 10px;
+      font-weight: bold;
+      color: #f9e2af;
+      font-size: 16px;
+    }
+
+    button.action-btn {
+      background: #a6e3a1;
+      border: none;
+      padding: 10px 20px;
+      color: #11111b;
+      font-weight: bold;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    
+    #os-guide-overlay {
+      display: flex;
+      position: absolute;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(17, 17, 27, 0.94);
+      z-index: 100;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    #os-title {
+      color: #89b4fa;
+      font-size: 26px;
+      margin-bottom: 8px;
+    }
+    #os-badge {
+      background: #313244;
+      color: #f9e2af;
+      border: 1px solid #f9e2af;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: bold;
+      margin-bottom: 16px;
+    }
+    #os-instructions {
+      max-width: 360px;
+      font-size: 15px;
+      line-height: 1.5;
+      color: #cdd6f4;
+      background: #181825;
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid #45475a;
+      text-align: left;
+      margin-bottom: 20px;
+    }
+    #os-action-btn {
+      background: #89b4fa;
+      color: #11111b;
+      border: none;
+      padding: 14px 28px;
+      font-size: 18px;
+      font-weight: bold;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(137, 180, 250, 0.4);
+    }
+
+    #skin-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin: 15px 0;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    .skin-circle {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 2px solid #ffffff;
+      cursor: pointer;
+      background-size: cover;
+      background-position: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      transition: transform 0.1s;
+    }
+    .skin-circle:hover {
+      transform: scale(1.1);
+    }
+    .skin-locked {
+      background: #45475a !important;
+      border: 2px dashed #6c7086;
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .backup-row {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 12px;
+    }
+    .backup-btn {
+      background: #313244;
+      border: 1px solid #cba6f7;
+      color: #cba6f7;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
+  <script> src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js">
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('Service Worker Registrato:', reg.scope))
+        .catch(err => console.error('Errore SW:', err));
+    });
+  }
+</script>
+</head>
+<body>
+
+  <!-- Overlay Rilevamento OS -->
+  <div id="os-guide-overlay">
+    <div id="os-title">🔴 Boing!</div>
+    <div id="os-badge">Rilevamento Sistema...</div>
+    <div id="os-instructions">Caricamento delle istruzioni di gioco...</div>
+    <button id="os-action-btn">Inizia a Giocare!</button>
+  </div>
+
+  <div id="ui">
+    <div id="level-text">Livello 1</div>
+    <div id="powerup-status">🔍 MINI</div>
+    <button class="btn-ui" id="skins-btn">🎨 Skin</button>
+    <button class="btn-ui" id="info-btn">❓ Guida OS</button>
+  </div>
+
+  <!-- Modal Vittoria & Sblocco Skin -->
+  <div id="win-modal" class="modal">
+    <h2 id="win-title">Livello Completato! 🎉</h2>
+    <p id="win-desc">Ottimo controllo della fisica!</p>
+    
+    <div id="unlocked-skin-container">
+      <div id="unlocked-skin-preview"></div>
+      <div id="unlocked-skin-name">Skin Nome</div>
+    </div>
+
+    <button class="action-btn" id="next-btn">Prossimo Livello</button>
+  </div>
+
+  <!-- Modal Selezione Skin & Backup File -->
+  <div id="skin-modal" class="modal">
+    <h2 style="color:#89b4fa">Skins & Backup</h2>
+    <p style="font-size: 13px; margin-bottom: 8px;">Sblocchi una skin ogni 15 livelli!</p>
+    
+    <div id="skin-list"></div>
+
+    <div class="backup-row">
+      <button class="backup-btn" id="export-btn">💾 Salva boing_save.json</button>
+      <button class="backup-btn" id="import-btn">📂 Carica File</button>
+      <input type="file" id="import-file" style="display: none;" accept=".json">
+    </div>
+
+    <button class="action-btn" style="background:#89b4fa; margin-top: 15px;" id="close-skin-btn">Chiudi</button>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('Service Worker Registrato:', reg.scope))
+          .catch(err => console.error('Errore SW:', err));
+      });
+    }
+
+    function detectOS() {
+      const userAgent = window.navigator.userAgent || window.navigator.vendor || window.opera;
+      const platform = window.navigator.platform || '';
+
+      if (/iPad|iPhone|iPod/.test(userAgent) || (platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+        return 'iOS';
+      }
+      if (/android/i.test(userAgent)) {
+        return 'Android';
+      }
+      if (/Win/i.test(platform) || /windows/i.test(userAgent)) {
+        return 'Windows';
+      }
+      if (/Mac/i.test(platform) || /macintosh/i.test(userAgent)) {
+        return 'macOS';
+      }
+      if (/Linux/i.test(platform) || /linux/i.test(userAgent)) {
+        return 'Linux';
+      }
+      return 'Mobile/Desktop';
+    }
+
+    const detectedOS = detectOS();
+
+    function setupOSGuide() {
+      const badge = document.getElementById('os-badge');
+      const instructions = document.getElementById('os-instructions');
+      const btn = document.getElementById('os-action-btn');
+
+      badge.innerText = `Dispositivo Rilevato: ${detectedOS}`;
+
+      if (detectedOS === 'iOS') {
+        instructions.innerHTML = `
+          <strong>Guida per iPhone / iPad:</strong><br>
+          • 🔴 Inclina il dispositivo per muovere la pallina.<br>
+          • ⚠️ Tocca il pulsante sotto per abilitare i sensori!
+        `;
+        btn.innerText = "Abilita Sensori e Gioca";
+      } else if (detectedOS === 'Android') {
+        instructions.innerHTML = `
+          <strong>Guida per Android:</strong><br>
+          • 🔴 Inclina lo smartphone per far rotolare la pallina verso il traguardo.<br>
+          • 🚀 Salvataggio automatico attivo.
+        `;
+        btn.innerText = "Gioca Ora!";
+      } else {
+        instructions.innerHTML = `
+          <strong>Guida per PC (${detectedOS}):</strong><br>
+          • ⌨️ Usa <strong>FRECCE DIREZIONALI</strong> o <strong>WASD</strong> per inclinare il piano.<br>
+          • 💾 Esporta/Importa il file <code>boing_save.json</code> dal menu Skin!
+        `;
+        btn.innerText = "Inizia la Sfida!";
+      }
+    }
+
+    setupOSGuide();
+
+    document.getElementById('os-action-btn').addEventListener('click', () => {
+      if (detectedOS === 'iOS' && typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission()
+          .then(response => {
+            if (response === 'granted') {
+              window.addEventListener('deviceorientation', handleOrientation);
+            }
+            document.getElementById('os-guide-overlay').style.display = 'none';
+          })
+          .catch(() => {
+            document.getElementById('os-guide-overlay').style.display = 'none';
+          });
+      } else {
+        document.getElementById('os-guide-overlay').style.display = 'none';
+      }
+    });
+
+    document.getElementById('info-btn').addEventListener('click', () => {
+      document.getElementById('os-guide-overlay').style.display = 'flex';
+    });
+
+    const STORAGE_KEY_LEVEL = 'gyro_game_current_level_v4';
+    const STORAGE_KEY_HIGHEST = 'gyro_game_highest_level_v4';
+    const STORAGE_KEY_SKIN_IDX = 'gyro_game_selected_skin_idx_v4';
+
+    function safeGetStorage(key, defaultValue) {
+      try {
+        const val = localStorage.getItem(key);
+        if (val !== null) return val;
+        const oldVal = localStorage.getItem(key.replace('_v4', '_v3')) || localStorage.getItem(key.replace('_v4', '_v2'));
+        return oldVal !== null ? oldVal : defaultValue;
+      } catch (e) {
+        return defaultValue;
+      }
+    }
+
+    function safeSetStorage(key, value) {
+      try {
+        localStorage.setItem(key, value.toString());
+      } catch (e) {}
+    }
+
+    const { Engine, Render, Runner, Bodies, Composite, Events, Vector, Body } = Matter;
+
+    const engine = Engine.create();
+    const w = Math.min(window.innerWidth - 24, 768);
+    const h = Math.min(window.innerHeight - 90, 1024);
+
+    const render = Render.create({
+      element: document.body,
+      engine: engine,
+      options: {
+        width: w,
+        height: h,
+        wireframes: false,
+        background: '#181825'
+      }
+    });
+
+    Render.run(render);
+    const runner = Runner.create();
+    Runner.run(runner, engine);
+
+    const SKINS = [
+      { name: "Rosa Standard", color: "#f38ba8" },
+      { name: "Blu Neon", color: "#89b4fa" },
+      { name: "Verde Smeraldo", color: "#a6e3a1" },
+      { name: "Giallo Solare", color: "#f9e2af" },
+      { 
+        name: "Palla Magma 🔥", 
+        texture: 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#d32f2f"/><path d="M12 20 Q18 8 32 8 Q46 8 52 20 Q58 32 52 44 Q46 56 32 56 Q18 56 12 44 Q6 32 12 20 Z" fill="#f57c00"/><path d="M18 24 Q24 14 32 14 Q40 14 46 24 Q50 32 46 40 Q40 50 32 50 Q24 50 18 40 Q14 32 18 24 Z" fill="#fbc02d"/><path d="M22 28 h2 v4 h-2 z M28 20 h4 v2 h-4 z M36 36 h6 v4 h-6 z M20 38 h4 v2 h-4 z M40 22 h4 v4 h-4 z" fill="#fff59d"/></svg>') 
+      },
+      { 
+        name: "Palla Ghiaccio ❄️", 
+        texture: 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#0288d1"/><circle cx="32" cy="32" r="26" fill="#29b6f6"/><path d="M32 12 v40 M12 32 h40 M18 18 l28 28 M46 18 l-28 28" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/><circle cx="32" cy="32" r="6" fill="#e0f7fa"/></svg>') 
+      },
+      { 
+        name: "Occhio Digitale 👁️", 
+        texture: 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#111111"/><circle cx="32" cy="32" r="18" fill="#ffffff"/><circle cx="32" cy="32" r="10" fill="#000000"/><circle cx="28" cy="28" r="3" fill="#ffffff"/></svg>') 
+      },
+      { 
+        name: "Pianeta Triste 🌙", 
+        texture: 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#d7ccc8"/><circle cx="20" cy="20" r="4" fill="#bcaaa4"/><circle cx="46" cy="42" r="5" fill="#bcaaa4"/><rect x="20" y="26" width="6" height="6" fill="#3e2723"/><rect x="38" y="26" width="6" height="6" fill="#3e2723"/><path d="M22 42 Q32 36 42 42" stroke="#3e2723" stroke-width="4" fill="none" stroke-linecap="round"/></svg>') 
+      },
+      { 
+        name: "Trofeo d'Oro 🏆", 
+        texture: 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#fbc02d"/><circle cx="32" cy="32" r="26" fill="#ffee58"/><path d="M22 20 h20 v12 Q32 40 32 40 Q32 40 22 32 Z" fill="#f57f17"/><rect x="28" y="40" width="8" height="6" fill="#f57f17"/><rect x="24" y="46" width="16" height="4" fill="#f57f17"/></svg>') 
+      },
+      { 
+        name: "Galassia Cosmica 🌌", 
+        texture: 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#0d47a1"/><path d="M16 32 Q32 16 48 24 Q52 32 44 42 Q32 50 20 40 Q12 32 24 24" fill="none" stroke="#ba68c8" stroke-width="8" stroke-linecap="round"/><circle cx="32" cy="32" r="6" fill="#e1bee7"/><circle cx="18" cy="18" r="2" fill="#80deea"/><circle cx="48" cy="46" r="2" fill="#80deea"/><circle cx="46" cy="16" r="1.5" fill="#ffffff"/></svg>') 
+      }
+    ];
+
+    let currentLevel = parseInt(safeGetStorage(STORAGE_KEY_LEVEL, '0'), 10);
+    let highestLevel = parseInt(safeGetStorage(STORAGE_KEY_HIGHEST, '0'), 10);
+    if (highestLevel < currentLevel) highestLevel = currentLevel;
+
+    let selectedSkinIdx = parseInt(safeGetStorage(STORAGE_KEY_SKIN_IDX, '0'), 10);
+    if (selectedSkinIdx >= SKINS.length) selectedSkinIdx = 0;
+
+    function saveProgress() {
+      safeSetStorage(STORAGE_KEY_LEVEL, currentLevel);
+      safeSetStorage(STORAGE_KEY_HIGHEST, highestLevel);
+      safeSetStorage(STORAGE_KEY_SKIN_IDX, selectedSkinIdx);
+    }
+
+    let ball, goal;
+    let movingObstacles = [];
+    let powerups = [];
+    let isShrunk = false;
+    let isLevelComplete = false;
+    const wallOpt = { isStatic: true, render: { fillStyle: '#89b4fa' } };
+
+    function isSafePosition(px, py, obstacles, margin = 28) {
+      for (const obs of obstacles) {
+        const range = obs.isMoving ? (obs.range || 0) : 0;
+        const minX = obs.x - (obs.w / 2) - range - margin;
+        const maxX = obs.x + (obs.w / 2) + range + margin;
+        const minY = obs.y - (obs.h / 2) - margin;
+        const maxY = obs.y + (obs.h / 2) + margin;
+
+        if (px >= minX && px <= maxX && py >= minY && py <= maxY) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function findSafePowerupX(targetY, preferredX, obstacles) {
+      if (isSafePosition(preferredX, targetY, obstacles)) {
+        return Math.max(35, Math.min(w - 35, preferredX));
+      }
+
+      const step = 15;
+      for (let offset = step; offset < w / 2; offset += step) {
+        const rightX = preferredX + offset;
+        if (rightX < w - 35 && isSafePosition(rightX, targetY, obstacles)) return rightX;
+        const leftX = preferredX - offset;
+        if (leftX > 35 && isSafePosition(leftX, targetY, obstacles)) return leftX;
+      }
+
+      return Math.max(35, Math.min(w - 35, preferredX));
+    }
+
+    function generateLevelData(lvlIdx) {
+      const ballStart = { x: w * 0.15, y: h * 0.08 };
+      const goalPos = { x: w * 0.85, y: h * 0.92 };
+      const obstacles = [];
+      const levelPowerups = [];
+
+      const numRows = Math.min(12, 2 + Math.floor(lvlIdx / 3));
+      const baseGap = Math.max(60, w * 0.32 - (lvlIdx * 0.5));
+      const rowSpacing = (h * 0.75) / (numRows + 1);
+
+      const rowsInfo = [];
+
+      for (let i = 0; i < numRows; i++) {
+        const y = h * 0.15 + rowSpacing * (i + 1);
+        const isMoving = lvlIdx >= 3 && (i % 2 === 1);
+        const gapPosType = (i + lvlIdx) % 3;
+        const gapSize = baseGap;
+        let gapCenterX = w / 2;
+
+        let range = 0;
+        if (isMoving) {
+          range = (gapPosType === 2) ? Math.max(10, (gapSize - 38) / 2) : Math.max(15, gapSize - 38);
+        }
+
+        if (gapPosType === 0) {
+          const obsW = w - gapSize;
+          gapCenterX = gapSize / 2;
+          obstacles.push({ x: w - obsW / 2, y, w: obsW, h: 14, isMoving, gapPosType, range });
+        } else if (gapPosType === 1) {
+          const obsW = w - gapSize;
+          gapCenterX = w - gapSize / 2;
+          obstacles.push({ x: obsW / 2, y, w: obsW, h: 14, isMoving, gapPosType, range });
+        } else {
+          const sideW = (w - gapSize) / 2;
+          gapCenterX = w / 2;
+          obstacles.push({ x: sideW / 2, y, w: sideW, h: 14, isMoving, gapPosType, range, side: 'left' });
+          obstacles.push({ x: w - sideW / 2, y, w: sideW, h: 14, isMoving, gapPosType, range, side: 'right' });
+        }
+
+        rowsInfo.push({ index: i, y, gapCenterX, isMoving });
+      }
+
+      const movingRows = rowsInfo.filter(r => r.isMoving);
+
+      if (movingRows.length > 0) {
+        const firstMoving = movingRows[0];
+        const lastMoving = movingRows[movingRows.length - 1];
+
+        let shrinkY = (firstMoving.index > 0) ? (rowsInfo[firstMoving.index - 1].y + firstMoving.y) / 2 : Math.max(h * 0.11, firstMoving.y - rowSpacing * 0.55);
+        let prefShrinkX = (firstMoving.index > 0) ? rowsInfo[firstMoving.index - 1].gapCenterX : firstMoving.gapCenterX;
+        levelPowerups.push({ x: findSafePowerupX(shrinkY, prefShrinkX, obstacles), y: shrinkY, type: 'shrink' });
+
+        let expandY = (lastMoving.index < numRows - 1) ? (lastMoving.y + rowsInfo[lastMoving.index + 1].y) / 2 : Math.min(h * 0.89, lastMoving.y + rowSpacing * 0.55);
+        let prefExpandX = (lastMoving.index < numRows - 1) ? rowsInfo[lastMoving.index + 1].gapCenterX : lastMoving.gapCenterX;
+        levelPowerups.push({ x: findSafePowerupX(expandY, prefExpandX, obstacles), y: expandY, type: 'expand' });
+      }
+
+      return { ballStart, goalPos, obstacles, powerups: levelPowerups };
+    }
+
+    function loadLevel(levelIdx) {
+      isLevelComplete = false;
+      isShrunk = false;
+      movingObstacles = [];
+      powerups = [];
+      
+      document.getElementById('powerup-status').style.display = 'none';
+      document.getElementById('win-modal').style.display = 'none';
+      document.getElementById('level-text').innerText = `Livello ${levelIdx + 1}`;
+
+      Composite.clear(engine.world, false);
+
+      const ground = Bodies.rectangle(w / 2, h, w, 24, wallOpt);
+      const ceiling = Bodies.rectangle(w / 2, 0, w, 24, wallOpt);
+      const leftWall = Bodies.rectangle(0, h / 2, 24, h, wallOpt);
+      const rightWall = Bodies.rectangle(w, h / 2, 24, h, wallOpt);
+      Composite.add(engine.world, [ground, ceiling, leftWall, rightWall]);
+
+      const data = generateLevelData(levelIdx);
+
+      goal = Bodies.circle(data.goalPos.x, data.goalPos.y, 24, {
+        isSensor: true,
+        isStatic: true,
+        render: { fillStyle: '#a6e3a1' }
+      });
+
+      const skinObj = SKINS[selectedSkinIdx] || SKINS[0];
+      let ballRenderOptions = {};
+      if (skinObj.texture) {
+        ballRenderOptions = {
+          sprite: {
+            texture: skinObj.texture,
+            xScale: 32 / 64,
+            yScale: 32 / 64
+          }
+        };
+      } else {
+        ballRenderOptions = { fillStyle: skinObj.color };
+      }
+
+      ball = Bodies.circle(data.ballStart.x, data.ballStart.y, 16, {
+        restitution: 0.6,
+        friction: 0.05,
+        render: ballRenderOptions
+      });
+
+      const obsBodies = data.obstacles.map(o => {
+        const body = Bodies.rectangle(o.x, o.y, o.w, o.h, {
+          isStatic: true,
+          render: { fillStyle: o.isMoving ? '#f9e2af' : '#89b4fa' }
+        });
+        if (o.isMoving) {
+          movingObstacles.push({
+            body: body,
+            initialX: o.x,
+            range: o.range,
+            gapPosType: o.gapPosType,
+            side: o.side || null,
+            speed: 0.018 + Math.min(0.025, levelIdx * 0.0006)
+          });
+        }
+        return body;
+      });
+
+      const powerupBodies = data.powerups.map(p => {
+        const isShrink = p.type === 'shrink';
+        const pBody = Bodies.circle(p.x, p.y, 13, {
+          isSensor: true,
+          isStatic: true,
+          render: {
+            fillStyle: isShrink ? '#89dceb' : '#fab387',
+            strokeStyle: '#ffffff',
+            lineWidth: 2
+          }
+        });
+        powerups.push({ body: pBody, type: p.type, collected: false });
+        return pBody;
+      });
+
+      Composite.add(engine.world, [goal, ball, ...obsBodies, ...powerupBodies]);
+    }
+
+    let time = 0;
+    Events.on(engine, 'beforeUpdate', () => {
+      time += 0.05;
+
+      movingObstacles.forEach(item => {
+        const oldX = item.body.position.x;
+        let sinVal = Math.sin(time * item.speed * 20);
+
+        if (item.gapPosType === 1 || (item.gapPosType === 2 && item.side === 'right')) {
+          sinVal = -sinVal;
+        }
+
+        const newX = item.initialX + sinVal * item.range;
+        const vx = newX - oldX;
+        
+        Body.setPosition(item.body, { x: newX, y: item.body.position.y });
+        Body.setVelocity(item.body, { x: vx, y: 0 });
+      });
+
+      if (isLevelComplete || !ball || !goal) return;
+
+      powerups.forEach(p => {
+        if (!p.collected && Vector.magnitude(Vector.sub(ball.position, p.body.position)) < 26) {
+          p.collected = true;
+          Composite.remove(engine.world, p.body);
+
+          if (p.type === 'shrink' && !isShrunk) {
+            isShrunk = true;
+            Body.scale(ball, 0.5, 0.5);
+            if (ball.render.sprite && ball.render.sprite.texture) {
+              ball.render.sprite.xScale *= 0.5;
+              ball.render.sprite.yScale *= 0.5;
+            }
+            document.getElementById('powerup-status').style.display = 'block';
+            document.getElementById('powerup-status').innerText = '🔍 MINI BALL';
+          } else if (p.type === 'expand' && isShrunk) {
+            isShrunk = false;
+            Body.scale(ball, 2.0, 2.0);
+            if (ball.render.sprite && ball.render.sprite.texture) {
+              ball.render.sprite.xScale *= 2.0;
+              ball.render.sprite.yScale *= 2.0;
+            }
+            document.getElementById('powerup-status').style.display = 'none';
+          }
+        }
+      });
+
+      const dist = Vector.magnitude(Vector.sub(ball.position, goal.position));
+      if (dist < (isShrunk ? 22 : 18)) {
+        isLevelComplete = true;
+
+        const completedLevelNumber = currentLevel + 1;
+        currentLevel++; 
+        if (currentLevel > highestLevel) highestLevel = currentLevel;
+        saveProgress(); 
+
+        const skinContainer = document.getElementById('unlocked-skin-container');
+
+        if (completedLevelNumber % 15 === 0) {
+          const skinUnlockedIdx = Math.floor(completedLevelNumber / 15);
+          
+          if (skinUnlockedIdx < SKINS.length) {
+            const newSkin = SKINS[skinUnlockedIdx];
+            document.getElementById('win-title').innerText = 'NUOVA SKIN SBLOCCATA! 🎨';
+            document.getElementById('win-desc').innerText = `Hai sbloccato la skin "${newSkin.name}"!`;
+            
+            const previewEl = document.getElementById('unlocked-skin-preview');
+            if (newSkin.texture) {
+              previewEl.style.backgroundImage = `url("${newSkin.texture}")`;
+              previewEl.style.backgroundColor = 'transparent';
+            } else {
+              previewEl.style.backgroundImage = 'none';
+              previewEl.style.backgroundColor = newSkin.color;
+            }
+            
+            document.getElementById('unlocked-skin-name').innerText = newSkin.name;
+            skinContainer.style.display = 'block';
+          } else {
+            document.getElementById('win-title').innerText = 'Livello Completato! 🎉';
+            document.getElementById('win-desc').innerText = `Livello ${completedLevelNumber} superato!`;
+            skinContainer.style.display = 'none';
+          }
+        } else {
+          document.getElementById('win-title').innerText = 'Livello Completato! 🎉';
+          document.getElementById('win-desc').innerText = `Livello ${completedLevelNumber} superato!`;
+          skinContainer.style.display = 'none';
+        }
+        
+        document.getElementById('win-modal').style.display = 'block';
+      }
+    });
+
+    document.getElementById('next-btn').addEventListener('click', () => {
+      loadLevel(currentLevel);
+    });
+
+    const skinModal = document.getElementById('skin-modal');
+    document.getElementById('skins-btn').addEventListener('click', () => {
+      renderSkinList();
+      skinModal.style.display = 'block';
+    });
+
+    document.getElementById('close-skin-btn').addEventListener('click', () => {
+      skinModal.style.display = 'none';
+    });
+
+    // --- FILE DI BACKUP ---
+    document.getElementById('export-btn').addEventListener('click', () => {
+      const saveData = {
+        game: '🔴 Boing!',
+        currentLevel: currentLevel,
+        highestLevel: highestLevel,
+        selectedSkinIdx: selectedSkinIdx,
+        timestamp: new Date().toISOString()
+      };
+      const blob = new Blob([JSON.stringify(saveData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'boing_save.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('import-btn').addEventListener('click', () => {
+      document.getElementById('import-file').click();
+    });
+
+    document.getElementById('import-file').addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (typeof data.currentLevel === 'number' && typeof data.highestLevel === 'number') {
+            currentLevel = data.currentLevel;
+            highestLevel = data.highestLevel;
+            selectedSkinIdx = data.selectedSkinIdx || 0;
+            saveProgress();
+            loadLevel(currentLevel);
+            renderSkinList();
+            alert('Progresso di 🔴 Boing! caricato con successo!');
+            skinModal.style.display = 'none';
+          } else {
+            alert('File di salvataggio non valido.');
+          }
+        } catch (err) {
+          alert('Errore nella lettura del file.');
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    function renderSkinList() {
+      const container = document.getElementById('skin-list');
+      container.innerHTML = '';
+      const unlockedCount = 1 + Math.floor(highestLevel / 15);
+
+      SKINS.forEach((skin, idx) => {
+        const circle = document.createElement('div');
+        circle.className = 'skin-circle';
+        
+        if (idx < unlockedCount) {
+          if (skin.texture) {
+            circle.style.backgroundImage = `url("${skin.texture}")`;
+          } else {
+            circle.style.backgroundColor = skin.color;
+          }
+
+          if (idx === selectedSkinIdx) {
+            circle.style.border = '3px solid #a6e3a1';
+            circle.style.boxShadow = '0 0 12px #a6e3a1';
+          }
+
+          circle.addEventListener('click', () => {
+            selectedSkinIdx = idx;
+            saveProgress();
+            loadLevel(currentLevel);
+            renderSkinList();
+          });
+        } else {
+          circle.className += ' skin-locked';
+          circle.title = `Sblocca al livello ${idx * 15}`;
+        }
+        
+        container.appendChild(circle);
+      });
+    }
+
+    // --- CONTROLLI GIROSCOPIO / TASTIERA NATURALE ---
+    function handleOrientation(event) {
+      const x = event.gamma || 0;
+      const y = event.beta || 0;
+      engine.gravity.x = Math.max(-1.5, Math.min(1.5, x / 25));
+      engine.gravity.y = Math.max(0.2, Math.min(1.8, (y / 25) + 0.8)); // Forza costante verso il basso
+    }
+
+    const keysPressed = {};
+    const KEYBOARD_FORCE = 1.2;
+
+    window.addEventListener('keydown', (e) => {
+      keysPressed[e.key.toLowerCase()] = true;
+      keysPressed[e.code] = true;
+      updateKeyboardGravity();
+    });
+
+    window.addEventListener('keyup', (e) => {
+      keysPressed[e.key.toLowerCase()] = false;
+      keysPressed[e.code] = false;
+      updateKeyboardGravity();
+    });
+
+    function updateKeyboardGravity() {
+      let gx = 0;
+      let gy = 1.0; // Gravità base naturale verso il basso
+
+      if (keysPressed['arrowleft'] || keysPressed['a'] || keysPressed['keya']) gx -= KEYBOARD_FORCE;
+      if (keysPressed['arrowright'] || keysPressed['d'] || keysPressed['keyd']) gx += KEYBOARD_FORCE;
+      if (keysPressed['arrowup'] || keysPressed['w'] || keysPressed['keyw']) gy -= 0.6;
+      if (keysPressed['arrowdown'] || keysPressed['s'] || keysPressed['keys']) gy += 0.8;
+
+      engine.gravity.x = gx;
+      engine.gravity.y = gy;
+    }
+
+    window.addEventListener('deviceorientation', handleOrientation);
+
+    loadLevel(currentLevel);
+  </script>
+</body>
+</html>
